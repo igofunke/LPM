@@ -1,0 +1,25 @@
+\\MODULO: complejos
+
+\\ Estructura que representa un número complejo
+reg complejo [
+	int a,
+	int b
+]
+
+\\ Devuelve la parte real del complejo
+func parteReal (complejo c) : int
+[
+	return c.a
+]
+
+\\ Devuelve la parte imaginaria del complejo
+func parteImaginaria (complejo c) : int
+[
+	return c.b
+]
+
+\\ Conjuga el complejo c
+func conjugar (complejo c)
+[
+	c.b <- -c.b
+]

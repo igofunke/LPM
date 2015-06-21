@@ -1,0 +1,36 @@
+import "input/math.txt"
+import "input/time.txt"
+
+reg resultadosB [int uno, int dos, int tres]
+
+[tm tuno, tm tdos, int z1, resultadosB res]
+
+\\ Prueba las funciones del modulo time
+func A() : int
+	int s
+[
+	call diff (tuno, tdos, tuno),
+	call segundosTotales (tuno) -> s,
+	return s
+]
+
+\\ Prueba todas las funciones del modulo math
+func B(resultadosB r, int u, int d, int t)
+[
+	call abs (u) -> r.uno,
+	call mod (d,t) -> r.dos,
+	call pow(d,t) -> r.tres
+]
+
+tuno.s <- 5,
+tuno.m <- 30,
+tuno.h <- 1,
+
+error <- 3, \\Quitar para eliminar error
+
+tdos.s <- 3,
+tdos.m <- 10,
+tdos.h <- 1,
+
+call A() -> z1,
+call B(res,-3,7,3)

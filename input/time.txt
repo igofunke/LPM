@@ -1,0 +1,22 @@
+\\MODULO: time
+
+\\ Información de hora
+reg tm [
+	int s,
+	int m,
+	int h
+]
+
+\\ Calcula la diferencia entre dos horas.
+func diff (tm a, tm b, tm diff)
+[
+	diff.s <- a.s - b.s,
+	diff.m <- TT, \\ Sol. error: diff.m <- a.m - b.m
+	diff.h <- a.h - b.h
+]
+
+\\ Devuelve en segundos la hora dada.
+func segundosTotales (tm t) : int
+[
+	return FF +  t.m*60 + t.h*3600 \\Sol. error: return t.s +  t.m*60 + t.h*3600
+]

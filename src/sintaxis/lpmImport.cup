@@ -1,0 +1,331 @@
+package sintaxis;
+
+import java_cup.runtime.*;
+import lexico.AnalizadorLexicoLPM;
+import lexico.UnidadLexica;
+import errores.ErrorDispatcher;
+import sabstracta.*;
+import tipos.*;
+import java.util.Vector;
+
+scan with {: return getScanner().next_token(); :};
+parser code {:
+   protected AnalizadorLexicoLPM analizadorLexico;
+   public void syntax_error(Symbol unidadLexica) {
+     ErrorDispatcher.getInstance().sendSyntaxError((UnidadLexica)unidadLexica);
+   }
+:};
+init with {: 
+   analizadorLexico = (AnalizadorLexicoLPM)getScanner();
+:};
+
+
+terminal    IF,WHILE,ARRAY,REG,FUN,DP,ASIG,PUNTO,
+			TRUE,FALSE,NOT,AND,OR,MI,MENOR,MAI,MAYOR,
+ 			DIS,ELSE,SWITCH,CASE,DEFAULT,RETURN,CALL,
+ 			PAP, PCIERRE, CA,CC, IGUAL, COMA, 
+ 			MAS, MENOS, POR, DIV, INT, BOOL, FLECHA,
+ 			IMPORT;
+ 			
+terminal String NP,IDEN,ENT,CADENA;
+
+non terminal Import.Aux S;
+non terminal Registro REGISTRO;
+non terminal Vector<Registro> SECUENCIAREG;
+non terminal Funcion FUNCION;
+non terminal Vector<Funcion> SECUENCIAFUN;
+non terminal Bloque BLOQUE;
+non terminal Expresion EXPRESION, A0, A1, A2,B0,B1,B2,B3,B4,ELEM;
+non terminal Entero NUMERO;
+non terminal Vector<Instruccion> SECUENCIA, SECUENCIAOPT;
+non terminal Instruccion INSTRUCCION, ASIGNACION, CONDICIONAL, BUCLE, CASEI, RETURNI, CALLI;
+non terminal Tipo TIPOF,ARRAYL;
+non terminal Vector<Definicion> SECUENCIADEF, SECUENCIADEFOPT, BLOQUEDEF, BLOQUEDEFOPT;
+non terminal Definicion DEF;
+non terminal Var VAR0, VAR1;
+non terminal Identificador VAR2;
+non terminal Vector<CaseC> SECUENCIACASE;
+non terminal Default DEFAULTOPT;
+non terminal Vector<Expresion> SECUENCIAEXP,SECUENCIAEXPOPT;
+
+
+S ::= SECUENCIAREG:_sreg SECUENCIAFUN:_sfun
+	{: RESULT = new Import.Aux(_sreg,_sfun); :};
+	
+SECUENCIAREG ::= REGISTRO: _reg SECUENCIAREG: _sreg
+	{: _sreg.add(0,_reg); RESULT=_sreg; :};
+SECUENCIAREG ::= 
+	{: RESULT = new Vector<Registro>(); :};
+	
+SECUENCIAFUN ::= FUNCION: _fun SECUENCIAFUN: _sfun
+	{: _sfun.add(0,_fun); RESULT=_sfun; :};
+SECUENCIAFUN ::= 
+	{: RESULT = new Vector<Funcion>(); :};
+
+BLOQUEDEF ::= CA SECUENCIADEF: _sdef CC 
+	{: 	
+		RESULT = _sdef;
+	 :};
+BLOQUEDEFOPT ::= BLOQUEDEF: _sdef
+	{: RESULT = _sdef; :};
+BLOQUEDEFOPT ::= 
+	{: RESULT = new Vector<Definicion>(); :};
+	 
+SECUENCIADEF ::= DEF: _def
+	{: RESULT = new Vector<Definicion>(); RESULT.add(_def); :};
+SECUENCIADEF ::= DEF: _def COMA SECUENCIADEF: _sdef
+	{: _sdef.add(0,_def); RESULT=_sdef; :};
+	
+SECUENCIADEFOPT ::= SECUENCIADEF: _sdef
+	{: RESULT = _sdef; :};
+SECUENCIADEFOPT ::=
+	{: RESULT = new Vector<Definicion>(); :};
+
+DEF ::= ARRAYL:_array IDEN: _iden
+	{: 	
+		RESULT = new Definicion(_iden,_array);
+		RESULT.setFila(parser.analizadorLexico.fila());
+	:};
+	
+ARRAYL ::= ARRAY PAP NP: _n PCIERRE ARRAYL: _sig
+	{:
+		RESULT = new TipoArray(_sig,Integer.parseInt(_n));
+	:};
+ARRAYL ::= TIPOF:_t
+	{: RESULT = _t; :};
+	
+TIPOF ::= INT
+	{: RESULT = TipoBasico.INT; :};
+TIPOF ::= BOOL
+	{: RESULT = TipoBasico.BOOL; :};
+TIPOF ::= IDEN:_iden
+	{: RESULT = new TipoComplejo(_iden); :};
+
+	
+REGISTRO ::= REG IDEN:_iden BLOQUEDEF:_defs
+	{: 	
+		RESULT = new Registro(_iden,_defs);
+		RESULT.setFila(parser.analizadorLexico.fila());
+	 :};
+	 
+FUNCION ::= FUN IDEN:_iden PAP SECUENCIADEFOPT:_sarg PCIERRE DP ARRAYL:_ret SECUENCIADEFOPT:_sdef SECUENCIAFUN:_sfun BLOQUE: _bloque
+	{: 	
+		RESULT = new Funcion(_iden,_sarg,_ret,_sfun,_sdef,_bloque);
+		RESULT.setFila(parser.analizadorLexico.fila());
+	 :};
+	 
+FUNCION ::= FUN IDEN:_iden PAP SECUENCIADEFOPT:_sarg PCIERRE SECUENCIADEFOPT:_sdef SECUENCIAFUN:_sfun BLOQUE: _bloque
+	{: 	
+		RESULT = new Funcion(_iden,_sarg,TipoBasico.VOID,_sfun,_sdef,_bloque);
+		RESULT.setFila(parser.analizadorLexico.fila());
+	 :};
+	 
+BLOQUE ::= CA SECUENCIA:_seq CC
+	{: RESULT = new Bloque(_seq);
+		RESULT.setFila(parser.analizadorLexico.fila()); :};
+
+SECUENCIA ::= INSTRUCCION: _inst
+	{: 
+		RESULT = new Vector<Instruccion>();
+		RESULT.add(_inst);
+	 :};
+SECUENCIA ::= INSTRUCCION: _inst COMA SECUENCIA: _sec
+	{: 
+		_sec.add(0,_inst);
+		RESULT = _sec; 
+	:};
+	
+SECUENCIAOPT ::= SECUENCIA:_sdef
+	{: RESULT = _sdef; :};
+SECUENCIAOPT ::= 
+	{: RESULT = new Vector<Instruccion>(); :};
+	
+INSTRUCCION ::= ASIGNACION: _inst
+	{: RESULT = _inst; :};
+INSTRUCCION ::= CONDICIONAL: _inst
+	{: RESULT = _inst; :};
+INSTRUCCION ::= BUCLE: _inst
+	{: RESULT = _inst; :};
+INSTRUCCION ::= CASEI: _inst
+	{: RESULT = _inst; :};
+INSTRUCCION ::= RETURNI: _inst
+	{: RESULT = _inst; :};
+INSTRUCCION ::= CALLI: _inst
+	{: RESULT = _inst; :};
+
+ASIGNACION ::= VAR0: _lhs ASIG EXPRESION: _rhs
+	{: RESULT = new Asignacion(_lhs,_rhs);
+		RESULT.setFila(parser.analizadorLexico.fila());:};
+
+EXPRESION ::= B0: _exp
+	{: RESULT = _exp; :};
+	
+B0 ::= B0:_izq OR B1:_dch
+	{: RESULT = new Or(_izq,_dch); 
+		RESULT.setFila(parser.analizadorLexico.fila());:};
+B0 ::= B1: _exp
+	{: RESULT = _exp; :};
+
+B1 ::= B1:_izq AND B2:_dch
+	{: RESULT = new And(_izq,_dch);
+		RESULT.setFila(parser.analizadorLexico.fila()); :};
+B1 ::= B2:_exp 
+	{: RESULT = _exp; :};
+	
+B2 ::= NOT B3: _exp
+	{: RESULT = new Not(_exp); 
+		RESULT.setFila(parser.analizadorLexico.fila());:};
+B2 ::= B3: _exp
+	{: RESULT = _exp; :};
+
+B3 ::= A0:_izq IGUAL A0:_dcha
+	{: RESULT = new Igual(_izq,_dcha); 
+		RESULT.setFila(parser.analizadorLexico.fila());:};
+B3 ::= A0:_izq DIS A0:_dcha
+	{: RESULT = new Distinto(_izq,_dcha); 
+		RESULT.setFila(parser.analizadorLexico.fila());:};
+B3 ::= B4: _exp
+	{: RESULT = _exp; :};
+
+B4 ::= A0:_izq MENOR A0:_dcha
+	{: RESULT = new Menor(_izq,_dcha);
+		RESULT.setFila(parser.analizadorLexico.fila()); :};
+B4 ::= A0:_izq MI A0:_dcha
+	{: RESULT = new MenorIgual(_izq,_dcha); 
+		RESULT.setFila(parser.analizadorLexico.fila());:};
+B4 ::= A0:_izq MAYOR A0:_dcha
+	{: RESULT = new Mayor(_izq,_dcha); 
+		RESULT.setFila(parser.analizadorLexico.fila());:};
+B4 ::= A0:_izq MAI A0:_dcha
+	{: RESULT = new MayorIgual(_izq,_dcha);
+		RESULT.setFila(parser.analizadorLexico.fila()); :};
+B4 ::= A0: _exp
+	{: RESULT = _exp; :};
+
+A0 ::= A0:_izq MAS A1:_dcha
+	{: RESULT = new Suma(_izq,_dcha);
+		RESULT.setFila(parser.analizadorLexico.fila()); :};
+A0 ::= A0:_izq MENOS A1:_dcha
+	{: RESULT = new Resta(_izq,_dcha);
+		RESULT.setFila(parser.analizadorLexico.fila()); :};
+A0 ::= A1: _exp
+	{: RESULT = _exp; :};
+
+A1 ::= A1:_izq POR A2:_dcha
+	{: RESULT = new Multiplicacion(_izq,_dcha);
+		RESULT.setFila(parser.analizadorLexico.fila()); :};
+A1 ::= A1:_izq DIV A2:_dcha
+	{: RESULT = new Division(_izq,_dcha);
+		RESULT.setFila(parser.analizadorLexico.fila()); :};
+A1 ::= A2:_exp
+	{: RESULT = _exp; :};
+
+A2 ::= MENOS A2: _exp
+	{: RESULT = new OpMenos(_exp); 
+		RESULT.setFila(parser.analizadorLexico.fila());:};
+A2 ::= MAS A2: _exp
+	{: RESULT = new OpMas(_exp);
+		RESULT.setFila(parser.analizadorLexico.fila()); :};
+A2 ::= ELEM: _exp
+	{: RESULT = _exp; :};
+
+ELEM ::= NUMERO: _num
+	{: RESULT = _num; :};
+ELEM ::= VAR0:_var
+	{: RESULT = _var; :};
+ELEM ::= TRUE
+	{: RESULT = new Booleano(true);
+		RESULT.setFila(parser.analizadorLexico.fila()); :}; 
+ELEM ::= FALSE 
+	{: RESULT = new Booleano(false);
+		RESULT.setFila(parser.analizadorLexico.fila()); :};
+ELEM ::= PAP B0:_exp PCIERRE
+	{: RESULT = _exp; :};
+
+NUMERO ::= NP: _n
+	{: RESULT = new Entero(Integer.parseInt(_n)); 
+		RESULT.setFila(parser.analizadorLexico.fila());:};
+NUMERO ::= ENT: _n
+	{: RESULT = new Entero(Integer.parseInt(_n));
+		RESULT.setFila(parser.analizadorLexico.fila()); :};
+
+VAR0 ::= VAR0: _var PAP A0: _exp PCIERRE
+	{: RESULT = new ArrayItem(_var,_exp);
+		RESULT.setFila(parser.analizadorLexico.fila()); :};
+VAR0 ::= VAR1: _var
+	{: RESULT = _var; :};
+	
+VAR1 ::=  VAR1: _lhs PUNTO VAR2: _rhs 
+	{: RESULT = new ElementoRegistro(_lhs,_rhs);
+		RESULT.setFila(parser.analizadorLexico.fila()); :};
+VAR1 ::= VAR2: _var
+	{: RESULT = _var; :};
+	
+VAR2 ::= IDEN: _iden
+	{: RESULT = new Identificador(_iden); 
+		RESULT.setFila(parser.analizadorLexico.fila());:};
+
+
+BUCLE ::= WHILE PAP B0:_exp PCIERRE BLOQUE:_bloque
+	{: RESULT = new While(_exp,_bloque); 
+		RESULT.setFila(parser.analizadorLexico.fila());:};
+	
+CONDICIONAL ::= IF PAP B0:_exp PCIERRE BLOQUE:_bloque
+	{: RESULT = new If(_exp,_bloque);
+		RESULT.setFila(parser.analizadorLexico.fila()); :};
+	
+CONDICIONAL ::= IF PAP B0: _exp PCIERRE BLOQUE: _bloqueT ELSE BLOQUE:_bloqueF
+	{: RESULT = new If(_exp,_bloqueT,_bloqueF);
+		RESULT.setFila(parser.analizadorLexico.fila()); :};
+
+
+CASEI ::= SWITCH PAP VAR0: _var PCIERRE CA SECUENCIACASE: _casos DEFAULTOPT: _def CC
+	{: RESULT = new Switch(_var,_casos,_def); 
+		RESULT.setFila(parser.analizadorLexico.fila());:};
+
+SECUENCIACASE ::= CASE NUMERO:_exp DP BLOQUE:_bloque
+	{: 
+		RESULT = new Vector<CaseC>();
+		RESULT.add(0,new CaseC(_exp,_bloque)); 
+	:};
+	
+SECUENCIACASE ::= CASE NUMERO:_exp DP BLOQUE:_bloque COMA SECUENCIACASE:_casos
+	{: 
+		_casos.add(0,new CaseC(_exp,_bloque));
+		RESULT = _casos;
+	:};
+	
+DEFAULTOPT ::= DEFAULT DP BLOQUE :_bloque
+	{: 
+		RESULT = new Default(_bloque); 
+		RESULT.setFila(parser.analizadorLexico.fila());
+	:};
+DEFAULTOPT ::= {: RESULT = null; :};
+	
+RETURNI ::= RETURN EXPRESION:_exp
+	{: RESULT = new Return(_exp);
+		RESULT.setFila(parser.analizadorLexico.fila()); :};
+	
+CALLI ::= CALL IDEN:_iden PAP SECUENCIAEXPOPT:_sec PCIERRE
+	{: RESULT = new Call(_iden,_sec);
+		RESULT.setFila(parser.analizadorLexico.fila()); :};
+	
+CALLI ::= CALL IDEN:_iden PAP SECUENCIAEXPOPT:_sec PCIERRE FLECHA VAR0:_var
+	{: RESULT = new Call(_iden,_sec,_var);
+		RESULT.setFila(parser.analizadorLexico.fila()); :};
+
+SECUENCIAEXP ::= EXPRESION:_exp 
+	{: 
+		RESULT = new Vector<Expresion>();
+		RESULT.add(0,_exp);
+	:};
+SECUENCIAEXP ::= EXPRESION:_exp COMA SECUENCIAEXP:_sec
+	{: 
+		_sec.add(0,_exp);
+		RESULT = _sec;
+	:};
+	
+SECUENCIAEXPOPT ::= SECUENCIAEXP: _seq
+	{: RESULT = _seq; :};
+SECUENCIAEXPOPT ::=
+	{: RESULT = new Vector<Expresion>(); :};

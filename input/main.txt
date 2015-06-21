@@ -1,0 +1,116 @@
+import "input/complejos.txt"
+
+reg punto [
+	int x,
+	int y
+]
+
+[int n, array(2) array(2) bool c, punto p, complejo comp]
+
+func tia (int n) : int [
+	return n-1
+]
+
+func madre (int n) : int
+	int y
+[
+	call tia (n-1) -> y,
+	return y
+]
+
+func padre (int n) : int
+	int y
+[
+	call madre(n-1)->y,
+	return y
+]
+
+func ref (array(2) array(2) bool u) : bool
+	punto t
+[
+	u(0)(1) <- FF,
+	t.x <- 5,
+	c(1)(1) <- t.x = 5,
+	return u(0)(0)
+]
+
+func foobar (int n) : int
+	int x
+[
+	x <- 4,
+	switch (n) [
+		case 3: [
+			x <- 6
+		],
+		case 6:[
+			x <- 12
+		]
+		
+		default: [
+			x <- 13
+		]
+	],
+	return x
+]
+
+func A () : bool
+	bool x
+	func B () : bool
+	[
+		return TT
+	]
+[
+	call B() -> x,
+	return x or FF
+]
+
+func foo () : int
+	int a
+	func bar ()
+	[
+		a <- 5
+	]
+[
+	a<-6,
+	call bar(),
+	return a
+]
+
+func factorialRecursivo (int n):int
+	int f
+[
+	if (n <= 1)[return 1]
+	else [
+		call factorialRecursivo(n-1) -> f,
+		n <- f*n,
+		return n
+	]
+]
+
+func factorial (int n) : int 
+	int sol
+[
+	sol <- 1,
+	if (n <= 1) [
+		return 1
+	],
+	while (n > 1)[
+		sol <- sol*n,
+		n <- n-1
+	],
+	return sol
+]
+
+n <- 6,
+call factorialRecursivo(n) -> n,
+
+p.x <- 11,
+p.y <- 22,
+
+call A() -> c(0)(0),
+call foobar(n+1) -> p.x,
+call ref (c) -> c(1)(0),
+
+comp.a <- 1,
+comp.b <- 1,
+call conjugar (comp)
